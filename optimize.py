@@ -124,7 +124,7 @@ def create_model_CNN(X_train):
     # Choose the optimizer and loss function
     optimizer = Nadam(learning_rate=0.001)
     loss_function = BinaryCrossentropy()
-    model.compile(optimizer=optimizer, loss=loss_function, metrics=['Recall', 'AUC', 'FalseNegatives', 'accuracy'])
+    model.compile(optimizer=optimizer, loss=loss_function, metrics=['Recall', 'AUC', 'accuracy'])
     
     return model
   
@@ -161,11 +161,11 @@ def create_model_NN(X_train):
     # Choose the optimizer and loss function
     optimizer = Nadam(learning_rate=0.001)
     loss_function = BinaryCrossentropy()
-    model.compile(optimizer=optimizer, loss=loss_function, metrics=['Recall', 'AUC', 'FalseNegatives', 'accuracy'])
+    model.compile(optimizer=optimizer, loss=loss_function, metrics=['Recall', 'AUC', 'accuracy'])
     
     return model 
   
-def CV_NN_stats(X, y, n_splits, class_weight, model_type):
+def CV_NN_stats(X, y, n_splits, class_weight, thresh, model_type):
   # Initialize Stratified K-fold
   stratified_kfold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=4)
 
@@ -212,21 +212,16 @@ def CV_NN_stats(X, y, n_splits, class_weight, model_type):
       best_model = load_model('best_model_fold.keras')
 
       # Evaluate the model on the test fold
-      test_loss, test_recall, test_auc, test_fn, test_acc = best_model.evaluate(X_test, y_test)
+      test_loss, test_recall, test_auc, test_acc = best_model.evaluate(X_test, y_test)
       auc_scores.append(test_auc)
       accuracy_scores.append(test_acc)
       
-      print("Test Recall:", test_recall)
-      print("Test AUC:", test_auc)
-      print("Test FN:", test_fn)
-      print("Test Accuracy:", test_acc)
-
 
       # Predict probabilities on the test set
       y_pred_proba = best_model.predict(X_test)
 
       # Get binary predictions based on probability threshold 
-      y_pred = np.where(y_pred_proba > 0.48, 1, 0)
+      y_pred = np.where(y_pred_proba > thresh, 1, 0)
 
       # Calculate and print classification report
       print("Classification Report:")
@@ -250,7 +245,7 @@ def CV_NN_stats(X, y, n_splits, class_weight, model_type):
       plt.show()
 
       # Calculate ROC curve
-      fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+      fpr, tpr = roc_curve(y_test, y_pred_proba)
       roc_auc = auc(fpr, tpr)
 
       # Plot ROC curve
@@ -276,14 +271,20 @@ def CV_NN_stats(X, y, n_splits, class_weight, model_type):
 
       f1_overall = f1_score(y_test, y_pred, average='weighted')
       f1_scores.append(f1_overall)
+      
+  
+  print('------------------------------------------------------------------------------------------------', '\n',
+        '------------------------------------------------------------------------------------------------', '\n',
+        '------------------------------------------------------------------------------------------------', '\n',
+        '------------------------------------------------------------------------------------------------', '\n',) 
 
   # Print mean and standard deviation of accuracy scores across folds
-  print(f'Mean AUC: {np.mean(auc_scores):.4f} (+/- {np.std(auc_scores):.4f})')
-  print(f'Mean F1 Score: {np.mean(f1_scores):.4f} (+/- {np.std(f1_scores):.4f})')
-  print(f'Mean FN Rate: {np.mean(fn_rates):.4f} (+/- {np.std(fn_rates):.4f})')
-  print(f'Mean Accuracy: {np.mean(accuracy_scores):.4f} (+/- {np.std(accuracy_scores):.4f})')
+  print(f'Mean AUC: {np.mean(auc_scores):.2f} (+/- {np.std(auc_scores):.2f})')
+  print(f'Mean F1 Score: {np.mean(f1_scores):.2f} (+/- {np.std(f1_scores):.2f})')
+  print(f'Mean FN Rate: {np.mean(fn_rates):.2f} (+/- {np.std(fn_rates):.2f})')
+  print(f'Mean Accuracy: {np.mean(accuracy_scores):.2f} (+/- {np.std(accuracy_scores):.2f})')
 
-  average_conf_matrix /= 5
+  average_conf_matrix /= n_splits
 
   # Plot the average confusion matrix
   plt.figure(figsize=(8, 6))
