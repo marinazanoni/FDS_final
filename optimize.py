@@ -245,7 +245,7 @@ def CV_NN_stats(X, y, n_splits, class_weight, thresh, model_type):
       plt.show()
 
       # Calculate ROC curve
-      fpr, tpr = roc_curve(y_test, y_pred_proba)
+      fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
       roc_auc = auc(fpr, tpr)
 
       # Plot ROC curve
